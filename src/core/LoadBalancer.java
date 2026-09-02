@@ -1,8 +1,6 @@
 package core;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import strategy.interfaces.RoutingStrategy;
@@ -42,15 +40,10 @@ public class LoadBalancer implements Runnable {
             while (true) { 
                 Socket clientSocket = serverSocket.accept();
                 int redirectionPort = strategy.selectNextServer();
-                System.out.println("Nouveau client connecté sur le LoadBalancer, port de redirection : " + redirectionPort);
 
-                BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
-
-                out.write("Bonjour, ici le load balancer, vous allez être rediriger vers le port : " + redirectionPort);
-
-                System.err.println("Connexion avec le client terminée");
-                out.close();
-                clientSocket.close();
+                ProxyWorker proxy = new ProxyWorker(clientSocket, redirectionPort);
+                Thread proxyThread = new Thread(proxy);
+                proxyThread.start();
             }
         } catch (IOException e) {
             System.out.println(e.getMessage());
