@@ -3,19 +3,22 @@ package core;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
+import model.BackendServer;
 import strategy.interfaces.RoutingStrategy;
 import utils.Port;
 
 public class LoadBalancer implements Runnable {
     private int port;
     private RoutingStrategy strategy;
+    private List<BackendServer> serverList;
 
     /**
      * Initiate a LoadBalancer
      * @param port Listening port
      * @param strategy The strategy used for redirect the port
      */
-    public LoadBalancer(int port, RoutingStrategy strategy) {
+    public LoadBalancer(int port, RoutingStrategy strategy, List<BackendServer> serverList) {
         try {
             Port.CheckPort(port);
             if (strategy == null) {
@@ -24,6 +27,7 @@ public class LoadBalancer implements Runnable {
             
             this.port = port;
             this.strategy = strategy; 
+            this.serverList = serverList;
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
@@ -39,7 +43,7 @@ public class LoadBalancer implements Runnable {
             
             while (true) { 
                 Socket clientSocket = serverSocket.accept();
-                int redirectionPort = strategy.selectNextServer();
+                int redirectionPort = strategy.selectNextServer(this.serverList);
 
                 ProxyWorker proxy = new ProxyWorker(clientSocket, redirectionPort);
                 Thread proxyThread = new Thread(proxy);

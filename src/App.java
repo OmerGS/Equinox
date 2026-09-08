@@ -2,6 +2,8 @@ import core.LoadBalancer;
 import dummy.DummyServer;
 import java.util.Arrays;
 import java.util.List;
+import model.BackendServer;
+import model.HealthChecker;
 import strategy.RoundRobin;
 import strategy.interfaces.RoutingStrategy;
 
@@ -16,10 +18,7 @@ public class App {
         RoutingStrategy strategy = new RoundRobin();
         List<Integer> ports = Arrays.asList(8081, 8082);
 
-        strategy.savePorts(ports);
-        
         for(int i = 0; i < 5; i++) {
-            System.out.println(strategy.selectNextServer());
         }
     }
 
@@ -38,21 +37,26 @@ public class App {
 
     private static void loadbalance() throws Exception {
         RoutingStrategy strategy = new RoundRobin();
-        List<Integer> ports = Arrays.asList(8081, 8082);
-        strategy.savePorts(ports);
+        BackendServer titanium = new BackendServer("localhost", 8081);
+        BackendServer alumini = new BackendServer("localhost", 8082);
+
+        List<BackendServer> serverList = Arrays.asList(titanium, alumini);
 
         DummyServer titane = new DummyServer("titane", 8081);
         DummyServer aluminium = new DummyServer("aluminium", 8082);
+        HealthChecker healthChecker = new HealthChecker(serverList);
 
         Thread threadTitane = new Thread(titane);
         Thread threadAluminium = new Thread(aluminium);
+        Thread healThread = new Thread(healthChecker);
 
         threadTitane.start();
         threadAluminium.start();
+        healThread.start();
 
         System.out.println("Serveurs on");
 
-        LoadBalancer load = new LoadBalancer(8080, strategy);
+        LoadBalancer load = new LoadBalancer(8080, strategy, serverList);
         Thread threadLoadBalancer = new Thread(load);
         threadLoadBalancer.start();
 
